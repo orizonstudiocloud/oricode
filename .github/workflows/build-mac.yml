@@ -12,8 +12,11 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
-        timeout-minutes: 30
+      - name: npm ci (con reintento)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci || npm ci
+        timeout-minutes: 45
       - name: Build OriCode (arm64)
         run: npx gulp vscode-darwin-arm64-min-ci
         timeout-minutes: 120
