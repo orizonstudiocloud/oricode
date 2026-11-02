@@ -1,0 +1,30 @@
+name: OriCode macOS Build
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+        timeout-minutes: 30
+      - name: Build OriCode (arm64)
+        run: npx gulp vscode-darwin-arm64-min-ci
+        timeout-minutes: 120
+      - name: Empaquetar como ZIP
+        run: |
+          cd ..
+          if [ -d "VSCode-darwin-arm64" ]; then
+            ditto -c -k --keepParent "VSCode-darwin-arm64" oricode-mac-arm64.zip
+            mv oricode-mac-arm64.zip oricode/
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oricode-mac-arm64
+          path: oricode-mac-arm64.zip

@@ -1,0 +1,108 @@
+{
+	"name": "oricode-agent",
+	"publisher": "orizon",
+	"displayName": "OriCode Agent",
+	"description": "AI agent panel powered by local and cloud models",
+	"icon": "media/oricode-agent-logo.png",
+	"version": "0.1.0",
+	"private": true,
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.95.0"
+	},
+	"categories": [
+		"AI",
+		"Chat"
+	],
+	"main": "./out/extension.js",
+	"extensionKind": ["ui"],
+	"capabilities": {
+		"untrustedWorkspaces": { "supported": true },
+		"virtualWorkspaces": false
+	},
+	"activationEvents": [
+		"*"
+	],
+	"contributes": {
+		"configurationDefaults": {
+			"chat.disableAIFeatures": true
+		},
+		"authentication": [{ "id": "oricode", "label": "OriCode" }],
+		"viewsContainers": {
+			"secondarySidebar": [
+				{
+					"id": "oricode-agent",
+					"title": "OriCode Agent",
+					"icon": "media/icon.svg"
+				}
+			]
+		},
+		"views": {
+			"oricode-agent": [
+				{
+					"id": "oricode.chatView",
+					"name": "Agent",
+					"type": "webview"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "oricode.focusAgent",
+				"title": "Focus OriCode Agent",
+				"category": "OriCode"
+			},
+			{
+				"command": "oricode.signIn",
+				"title": "Iniciar Sesión en la Web",
+				"category": "OriCode"
+			},
+			{
+				"command": "oricode.signOut",
+				"title": "Cerrar Sesión",
+				"category": "OriCode"
+			}
+		],
+		"configuration": {
+			"title": "OriCode",
+			"properties": {
+				"oricode.cloudUrl": {
+					"type": "string",
+					"default": "https://oricode.orizonstudio.cloud",
+					"scope": "machine",
+					"description": "URL del gateway OriCode compatible con OpenAI."
+				},
+				"oricode.ollamaUrl": {
+					"type": "string",
+					"default": "http://127.0.0.1:11434",
+					"scope": "machine",
+					"description": "URL del servidor Ollama."
+				},
+				"oricode.maxSteps": {
+					"type": "number",
+					"default": 0,
+					"minimum": 0,
+					"description": "Máximo de pasos por tarea del agente. 0 = sin límite."
+				},
+				"oricode.responseTimeout": {
+					"type": "number",
+					"default": 180000,
+					"minimum": 30000,
+					"maximum": 600000,
+					"description": "Tiempo máximo por respuesta del modelo, en milisegundos."
+				},
+				"oricode.syncHistory": {
+					"scope": "machine",
+					"type": "boolean",
+					"default": false,
+					"description": "Sincronizar conversaciones de este proyecto con OriCode Cloud."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"compile": "node ../../node_modules/typescript/lib/tsc.js -p .",
+		"watch": "node ../../node_modules/typescript/lib/tsc.js -p . --watch",
+		"test": "node --test test/*.test.cjs"
+	}
+}

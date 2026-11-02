@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Conectando con OriCode IDE…</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0d1117;color:#e6edf3;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.card{max-width:380px;text-align:center;padding:32px}
+.star{height:52px;margin-bottom:12px}
+h1{font-size:20px;font-weight:600;margin:0 0 10px}
+p{color:#8b98ab;font-size:14px;line-height:1.6;margin:0 0 18px}
+a.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600}
+a.btn:hover{background:#1d4ed8}
+a.link{display:block;margin-top:14px;color:#6ea8fe;font-size:13px;text-decoration:none}
+#err{color:#f88;font-size:13px;margin-top:12px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="card">
+<img class="star" src="/assets/branding/oricode-star.png" alt="">
+<h1 id="t">Conectando con OriCode IDE…</h1>
+<p id="m">Si el IDE no se abre automáticamente, pulsa el botón.</p>
+<a class="btn" id="open" href="#">Abrir OriCode IDE</a>
+<a class="link" id="back" href="/" hidden>Volver e iniciar sesión</a>
+<div id="err"></div>
+</div>
+<script src="./login.js?v=20261101-3"></script>
+</body>
+</html>
