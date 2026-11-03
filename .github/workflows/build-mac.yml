@@ -20,14 +20,14 @@ jobs:
       - name: Build OriCode (arm64)
         run: npx gulp vscode-darwin-arm64-min
         timeout-minutes: 120
-      - name: Empaquetar como ZIP
+      - name: Crear DMG
         run: |
-          cd ..
-          if [ -d "VSCode-darwin-arm64" ]; then
-            ditto -c -k --keepParent "VSCode-darwin-arm64" oricode-mac-arm64.zip
-            mv oricode-mac-arm64.zip oricode/
+          brew install create-dmg
+          create-dmg             --volname "OriCode"             --window-pos 200 120             --window-size 660 400             --icon-size 100             --icon "OriCode.app" 160 185             --hide-extension "OriCode.app"             --app-drop-link 500 185             "oricode-mac-arm64.dmg"             "../VSCode-darwin-arm64/OriCode.app" || true
+          if [ ! -f oricode-mac-arm64.dmg ]; then
+            hdiutil create -volname OriCode -srcfolder "../VSCode-darwin-arm64/OriCode.app" -ov -format UDZO oricode-mac-arm64.dmg
           fi
       - uses: actions/upload-artifact@v4
         with:
           name: oricode-mac-arm64
-          path: oricode-mac-arm64.zip
+          path: oricode-mac-arm64.dmg
