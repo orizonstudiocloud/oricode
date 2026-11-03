@@ -18,6 +18,8 @@ jobs:
         run: npm ci || npm ci
         timeout-minutes: 45
       - name: Build OriCode (arm64)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx gulp vscode-darwin-arm64-min
         timeout-minutes: 120
       - name: Crear DMG
