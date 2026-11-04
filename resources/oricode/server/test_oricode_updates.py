@@ -75,7 +75,7 @@ class TestUpdateFeed(unittest.TestCase):
         else:
             oricode_updates.RELEASES_MANIFEST.write_text(json.dumps({'platforms': platforms or {}}))
 
-    def check(self, platform='win32-x64-user', quality='stable', commit=COMMIT_OLD):
+    def check(self, platform='win32-x64-user', quality='oricode', commit=COMMIT_OLD):
         return asyncio.run(oricode_updates.check_update(platform, quality, commit))
 
     def android(self):

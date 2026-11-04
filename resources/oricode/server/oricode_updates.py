@@ -117,7 +117,7 @@ def _unavailable() -> Response:
 
 @router.get('/api/update/{platform}/{quality}/{commit}')
 async def check_update(platform: str, quality: str, commit: str):
-    if quality != 'stable' or not _DESKTOP_PLATFORM_RE.match(platform) or not _COMMIT_RE.match(commit):
+    if quality not in ('stable', 'oricode') or not _DESKTOP_PLATFORM_RE.match(platform) or not _COMMIT_RE.match(commit):
         return Response(status_code=204)
     manifest = _load_manifest()
     if manifest is None or not isinstance(manifest.get('platforms'), dict):
@@ -154,3 +154,8 @@ async def android_release():
         'url': record['url'],
         'sha256': record['sha256'],
     }
+
+
+def register_update_routes(app):
+    """Include the update feed router in the FastAPI app."""
+    app.include_router(router)

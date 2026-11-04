@@ -36,7 +36,7 @@
 	"electronArtifactFeed": "",
 	"urlProtocol": "oricode",
 	"updateUrl": "https://oricode.orizonstudio.cloud",
-	"quality": "stable",
+	"quality": "oricode",
 	"extensionsGallery": {
 		"serviceUrl": "https://open-vsx.org/vscode/gallery",
 		"itemUrl": "https://open-vsx.org/vscode/item",
