@@ -66,7 +66,7 @@ before(async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base='http://127.0.0.1:'+server.address().port;settings.ollamaUrl=base;settings.cloudUrl=base;
  secrets=new Map([['oricode.apiKey','orz_test_key'],['oricode.server',base]]);
  const context={secrets:{get:async key=>secrets.get(key),store:async(key,value)=>secrets.set(key,value),delete:async key=>secrets.delete(key)},workspaceState:state,globalState:state,extensionUri:Uri.file(path.resolve(__dirname,'..')),subscriptions:[]};extension.activate(context);
- viewProvider.resolveWebviewView({webview:{cspSource:base,asWebviewUri:()=>base+'/media',postMessage:m=>{posts.push(m);return Promise.resolve(true);},onDidReceiveMessage:listener=>{onMessage=listener;return disposable;}},onDidDispose:listener=>{onDispose=listener;return disposable;}});
+ viewProvider.resolveWebviewView({webview:{cspSource:base,asWebviewUri:()=>base+'/media',postMessage:m=>{posts.push(m);return Promise.resolve(true);},onDidReceiveMessage:listener=>{onMessage=listener;return disposable;}},onDidDispose:listener=>{onDispose=listener;return disposable;},onDidChangeVisibility:()=>disposable,visible:true});
  await viewProvider.restoreSession();
  await onMessage({type:'setMode',mode:'local'});
 });
@@ -125,3 +125,69 @@ test('signing out clears account credentials and prevents further cloud requests
  await onMessage({type:'send',text:'sin sesión',model:'test/cloud'});
  assert.deepEqual({sessions:await authProvider.getSessions(),requests:received,key:secrets.get('oricode.apiKey')},{sessions:[],requests:[],key:undefined});
 });
+
+// --- Extension tools via core commands -------------------------------------
+test('install_extension: alreadyInstalled passes through without re-prompt',async()=>{
+ const calls=[];
+ vscode.commands.executeCommand=async(id,args)=>{calls.push({id,args});return {installed:true,alreadyInstalled:true,enabled:true};};
+ const out=await agent.executeAction({tool:'install_extension',extensionId:'MS-Python.Python',reason:'lint'},'code',new AbortController().signal,undefined,{deniedExtensions:new Set()});
+ assert.equal(calls.length,1);assert.equal(calls[0].id,'oricode.extensions.install');
+ assert.equal(calls[0].args.extensionId,'ms-python.python');
+ assert.match(out,/alreadyInstalled/);
+});
+test('install_extension: declined cannot be requested again in same task',async()=>{
+ const calls=[];
+ vscode.commands.executeCommand=async id=>{calls.push(id);return {declined:true};};
+ const ctx={deniedExtensions:new Set()};
+ const out1=await agent.executeAction({tool:'install_extension',extensionId:'ms-python.python',reason:'r'},'bypass',new AbortController().signal,undefined,ctx);
+ assert.match(out1,/rechaz/);
+ assert.equal(calls.length,1);
+ const out2=await agent.executeAction({tool:'install_extension',extensionId:'ms-python.python',reason:'r'},'bypass',new AbortController().signal,undefined,ctx);
+ assert.match(out2,/rechaz/);
+ assert.equal(calls.length,1,'command invoked again despite denial');
+});
+test('install_extension: bypass mode still invokes the core consent command',async()=>{
+ let called=false;
+ vscode.commands.executeCommand=async id=>{called=id==='oricode.extensions.install';return {installed:true,enabled:true,version:'1'};};
+ const out=await agent.executeAction({tool:'install_extension',extensionId:'ms-python.python',reason:'r'},'bypass',new AbortController().signal,undefined,{deniedExtensions:new Set()});
+ assert.ok(called);assert.match(out,/installed/);
+});
+test('install_extension: ask/plan/untrusted never reach core command',async()=>{
+ let called=false;
+ vscode.commands.executeCommand=async()=>{called=true;return {};};
+ const read=await agent.executeAction({tool:'install_extension',extensionId:'a.b',reason:'r'},'ask',new AbortController().signal,undefined,{deniedExtensions:new Set()});
+ assert.match(read,/lectura/);assert.equal(called,false);
+ const trusted=vscode.workspace.isTrusted;
+ Object.defineProperty(vscode.workspace,'isTrusted',{get:()=>false,configurable:true});
+ await assert.rejects(()=>agent.executeAction({tool:'install_extension',extensionId:'a.b',reason:'r'},'bypass',new AbortController().signal,undefined,{deniedExtensions:new Set()}),/onfía/);
+ assert.equal(called,false);
+ Object.defineProperty(vscode.workspace,'isTrusted',{get:()=>trusted,configurable:true});
+});
+test('install_extension: abort issues core cancel with the requestId',async()=>{
+ const calls=[];let release;
+ vscode.commands.executeCommand=async(id,args)=>{calls.push({id,args});if(id==='oricode.extensions.install'){await new Promise(r=>release=r);return {installed:true};}return {};};
+ const ctrl=new AbortController();
+ const pending=agent.executeAction({tool:'install_extension',extensionId:'a.b',reason:'r'},'code',ctrl.signal,undefined,{deniedExtensions:new Set()});
+ await new Promise(r=>setTimeout(r,10));
+ ctrl.abort();
+ await new Promise(r=>setTimeout(r,10));
+ release();
+ await pending;
+ const cancel=calls.find(c=>c.id==='oricode.extensions.cancel');
+ assert.ok(cancel,'cancel command not issued on abort');
+ assert.equal(cancel.args,calls.find(c=>c.id==='oricode.extensions.install').args.requestId);
+});
+test('run_command blocks extension installs via shell',async()=>{
+ const out=await agent.executeAction({tool:'run_command',command:'code --install-extension ms-python.python'},'bypass',new AbortController().signal);
+ assert.match(out,/Bloqueado/);
+ const out2=await agent.executeAction({tool:'run_command',command:'code workbench.extensions.installExtension a.b'},'bypass',new AbortController().signal);
+ assert.match(out2,/Bloqueado/);
+});
+test('search/check_extension forward to core commands',async()=>{
+ const calls=[];
+ vscode.commands.executeCommand=async(id,args)=>{calls.push({id,args});return [{id:'a.b'}];};
+ await agent.executeAction({tool:'search_extensions',query:'python'},'ask',new AbortController().signal);
+ await agent.executeAction({tool:'check_extension',extensionId:'a.b'},'plan',new AbortController().signal);
+ assert.deepEqual(calls.map(c=>c.id),['oricode.extensions.search','oricode.extensions.check']);
+});
+after(()=>{vscode.commands.executeCommand=async()=>{};});

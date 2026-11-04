@@ -5,7 +5,6 @@
 
 import * as vscode from 'vscode';
 import { randomBytes } from 'crypto';
-import { spawn } from 'child_process';
 import { requestJson, streamChat, ChatMessage } from './network';
 import { ACTION_PROMPT, executeAction, isSensitivePath, parseAction, workspaceTarget } from './agent';
 import { BrowserSignIn } from './browserSignIn';
@@ -282,7 +281,8 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 		this._view = view;
 		view.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')] };
 		view.webview.html = this._html(view.webview);
-		this._disposables.push(view.onDidDispose(() => { this._controller?.abort(); this._view = undefined; }));
+		this._disposables.push(view.onDidDispose(() => { this._controller?.abort(); void this._speechCancel(); this._view = undefined; }));
+		this._disposables.push(view.onDidChangeVisibility(() => { if (!view.visible) { void this._speechCancel(); } }));
 		this._disposables.push(view.webview.onDidReceiveMessage(async (msg: PanelMessage) => {
 			try {
 				if (msg.type === 'ready') {
@@ -325,17 +325,14 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 						this._post({ type: 'attached', name: vscode.workspace.asRelativePath(pick[0]), content: Buffer.from(bytes).toString('utf8').slice(0, 16000) });
 					}
 				}
-				else if (msg.type === 'speechFallback') {
-					this._post({ type: 'status', text: vscode.l10n.t('Escuchando… habla ahora.') });
-					const spoken = await this._dictate();
-					if (spoken) {
-						this._post({ type: 'speechText', text: spoken });
-						this._post({ type: 'status', text: '' });
-					} else {
-						this._post({ type: 'status', text: '' });
-						const text = await vscode.window.showInputBox({ prompt: vscode.l10n.t('No se capturó voz. Escribe aquí el mensaje para continuar.'), placeHolder: vscode.l10n.t('Mensaje para OriCode') });
-						if (text?.trim()) { this._post({ type: 'speechText', text: text.trim() }); }
-					}
+				else if (msg.type === 'speechStart') {
+					void this._speechStart();
+				}
+				else if (msg.type === 'speechStop') {
+					await this._speechStop();
+				}
+				else if (msg.type === 'speechCancel') {
+					await this._speechCancel();
 				}
 				else if (msg.type === 'apply') {
 					if (this._controller) {
@@ -469,6 +466,7 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 			const limit = maxSteps > 0 ? maxSteps : Number.POSITIVE_INFINITY;
 			const timeoutMs = Math.max(30000, Math.min(600000, vscode.workspace.getConfiguration('oricode').get('responseTimeout', 180000)));
 			const triedFree = new Set<string>();
+			const actionContext = { deniedExtensions: new Set<string>() };
 			let lastSignature = '';
 			let repeatCount = 0;
 			let formatFails = 0;
@@ -490,9 +488,21 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 					if (controller.signal.aborted) {
 						throw error;
 					}
+					if (/413|too.?large|payload|exceed/i.test(String(error))) {
+						for (const msg of messages) {
+							if (Array.isArray(msg.content)) {
+								msg.content = msg.content.map(part => (part as { type?: string }).type === 'image_url' || (part as { type?: string }).type === 'file'
+									? { type: 'text', text: '[archivo multimedia omitido: supera el límite del proveedor]' }
+									: part);
+							}
+						}
+						messages.push({ role: 'user', content: 'El archivo multimedia supera el límite del proveedor. No lo vuelvas a pedir con read_image — usa la miniatura (thumb_*) o una versión más pequeña.' });
+						step--;
+						continue;
+					}
 					const free = this._models.find(m => m.free && m.id !== 'adaptive' && !triedFree.has(m.id));
 					const next = free || this._models.find(m => m.id !== 'adaptive' && !triedFree.has(m.id));
-					if (this._mode === 'cloud' && next && /402|403|404|429|503|quota|credit|cuota|crédito|rate.?limit|resourceexhausted|harness|unavailable|not.available|agotado|dejó de responder|timeout|ECONNRESET|socket/i.test(String(error))) {
+					if (this._mode === 'cloud' && next && /402|403|404|413|429|503|quota|credit|cuota|crédito|rate.?limit|resourceexhausted|harness|unavailable|not.available|agotado|dejó de responder|timeout|ECONNRESET|socket|too.?large|payload|exceed/i.test(String(error))) {
 						triedFree.add(selected);
 						selected = next.id;
 						this._post({ type: 'tool', text: next.free ? vscode.l10n.t('Proveedor sin cuota/disponibilidad. Reintentando con {0}.', selected) : vscode.l10n.t('Modelos gratuitos agotados. Reintentando con {0} (de pago).', selected) });
@@ -561,7 +571,7 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 					} else if (isRepeat) {
 						output = 'Acción ya ejecutada: tienes su resultado arriba. NO la repitas — continúa con OTRA acción (por ejemplo read_file de un archivo concreto del listado) o responde el resumen final.';
 					} else {
-						output = await executeAction(action, this._agentMode, controller.signal, { url: cloudUrl() + '/v1/chat/completions', key: this._mode === 'cloud' && !this._freePlan ? key : '' });
+						output = await executeAction(action, this._agentMode, controller.signal, { url: cloudUrl() + '/v1/chat/completions', key: this._mode === 'cloud' && !this._freePlan ? key : '' }, actionContext);
 						if ((action.tool === 'write_file' || action.tool === 'edit_file') && action.path) {
 							try {
 								const uri = await workspaceTarget(action.path);
@@ -579,8 +589,6 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 				}
 				this._post({ type: 'toolResult', text: output.startsWith('ORICODE_IMAGE::') ? '🖼️ ' + (action.path || 'imagen') : output.startsWith('ORICODE_MEDIA::') ? 'Media cargado: ' + (action.path || 'archivo') : output.slice(0, 16000) });
 				if (action.tool === 'generate_image') {
-					final = output;
-					this._post({ type: 'reply', text: final });
 					try {
 						const req = String(action.filename || 'imagen.png').replace(/\\/g, '/').replace(/^\/+/, '');
 						const parts = req.split('/').filter(part => part && part !== '.' && part !== '..').map(part => part.replace(/[^\w.-]/g, '_'));
@@ -588,7 +596,6 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 						const uri = await workspaceTarget('media/' + [...parts, name].join('/'));
 						await vscode.commands.executeCommand('vscode.open', uri, { preserveFocus: true });
 					} catch { /* vista opcional */ }
-					break;
 				}
 				if (output.startsWith('ORICODE_IMAGE::')) {
 					messages.push({ role: 'user', content: [
@@ -633,17 +640,81 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 			if (next) { void this._run(next.text, next.model); }
 		}
 	}
-	private _dictate(timeoutMs = 25000): Promise<string> {
-		return new Promise(resolve => {
-			const script = 'Add-Type -AssemblyName System.Speech; $e = New-Object System.Speech.Recognition.SpeechRecognitionEngine; $e.SetInputToDefaultAudioDevice(); $e.LoadGrammar((New-Object System.Speech.Recognition.DictationGrammar)); $r = $e.Recognize([TimeSpan]::FromSeconds(15)); if ($r) { [Console]::Out.Write($r.Text) }';
-			let out = '';
-			const ps = spawn('powershell', ['-NoProfile', '-Command', script], { timeout: timeoutMs });
-			ps.stdout.on('data', d => { out += d; });
-			ps.on('error', () => resolve(''));
-			ps.on('close', () => resolve(out.trim()));
-		});
+	private _speechSession: string | undefined;
+	private _speechPollTimer: NodeJS.Timeout | undefined;
+	private async _speechStart(): Promise<void> {
+		if (this._speechSession) {
+			return; // already active — ignore double-start
+		}
+		try {
+			const started = await vscode.commands.executeCommand<{ sessionId: string }>('oricode.dictation.start');
+			if (!started?.sessionId) {
+				throw new Error('sin sessionId');
+			}
+			this._speechSession = started.sessionId;
+			this._speechPoll();
+		} catch (error) {
+			const detail = error instanceof Error ? error.message : String(error);
+			const missing = /command .*not found|no .*command/i.test(detail);
+			this._post({ type: 'notice', text: missing ? vscode.l10n.t('Actualiza OriCode para usar el dictado multilingüe') : vscode.l10n.t('No se pudo iniciar el dictado: {0}', detail) });
+			this._post({ type: 'speechEnd' });
+		}
 	}
-	dispose() { this._controller?.abort(); this._disposables.forEach(d => d.dispose()); }
+	private _speechPoll(): void {
+		const tick = async () => {
+			const sessionId = this._speechSession;
+			if (!sessionId) {
+				return;
+			}
+			try {
+				const snap = await vscode.commands.executeCommand<Record<string, unknown>>('oricode.dictation.poll', sessionId);
+				if (this._speechSession !== sessionId) {
+					return; // cancelled meanwhile
+				}
+				this._post({ type: 'speechUpdate', ...snap });
+				if (snap?.state === 'done' || snap?.state === 'error') {
+					this._speechSession = undefined;
+					this._post({ type: 'speechEnd' });
+					return;
+				}
+			} catch (error) {
+				this._speechSession = undefined;
+				const detail = error instanceof Error ? error.message : String(error);
+				this._post({ type: 'notice', text: vscode.l10n.t('El dictado terminó con un error: {0}', detail) });
+				this._post({ type: 'speechEnd' });
+				return;
+			}
+			this._speechPollTimer = setTimeout(tick, 100);
+		};
+		void tick();
+	}
+	private async _speechStop(): Promise<void> {
+		const sessionId = this._speechSession;
+		if (!sessionId) {
+			return;
+		}
+		try {
+			const snap = await vscode.commands.executeCommand<Record<string, unknown>>('oricode.dictation.stop', sessionId);
+			if (this._speechSession === sessionId && snap) {
+				this._post({ type: 'speechUpdate', ...snap });
+				this._speechSession = undefined;
+				this._post({ type: 'speechEnd' });
+			}
+		} catch { /* poll loop surfaces errors */ }
+	}
+	private async _speechCancel(): Promise<void> {
+		const sessionId = this._speechSession;
+		this._speechSession = undefined;
+		if (this._speechPollTimer) {
+			clearTimeout(this._speechPollTimer);
+			this._speechPollTimer = undefined;
+		}
+		if (sessionId) {
+			try { await vscode.commands.executeCommand('oricode.dictation.cancel', sessionId); } catch { /* session may already be gone */ }
+		}
+		this._post({ type: 'speechEnd' });
+	}
+	dispose() { void this._speechCancel(); this._controller?.abort(); this._disposables.forEach(d => d.dispose()); }
 	_html(webview: vscode.Webview): string {
 		const media = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media'));
 		const nonce = randomBytes(18).toString('base64');

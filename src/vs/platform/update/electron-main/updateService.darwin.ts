@@ -93,9 +93,23 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 		this.setState(State.Idle(UpdateType.Archive, message));
 	}
 
+	/**
+	 * OriCode ships unsigned macOS builds: Electron's autoUpdater refuses to
+	 * download/apply updates to an unsigned app, so for the OriCode update
+	 * channel we only use the feed URL for our own check/download logic and
+	 * never hand it to `autoUpdater.setFeedURL`.
+	 */
+	private get unsignedSafeMode(): boolean {
+		return this.productService.updateUrl === 'https://oricode.orizonstudio.cloud';
+	}
+
 	protected buildUpdateFeedUrl(quality: string, commit: string, options?: IUpdateURLOptions): string | undefined {
 		const assetID = this.productService.darwinUniversalAssetId ?? (process.arch === 'x64' ? 'darwin' : 'darwin-arm64');
 		const url = createUpdateURL(this.productService.updateUrl!, assetID, quality, commit, options);
+		if (this.unsignedSafeMode) {
+			this.logService.trace('update#buildUpdateFeedUrl - unsigned channel, skipping Electron autoUpdater feed registration', { url, assetID, quality, commit });
+			return url;
+		}
 		const headers = getUpdateRequestHeaders(this.productService.version);
 		try {
 			this.logService.trace('update#buildUpdateFeedUrl - setting feed URL for Electron autoUpdater', { url, assetID, quality, commit, headers });
@@ -121,6 +135,13 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 
 		if (!url) {
 			this.setState(State.Idle(UpdateType.Archive));
+			return;
+		}
+
+		// Unsigned OriCode builds cannot use Electron's autoUpdater (it requires a
+		// signed app). Check the feed ourselves; download opens the DMG externally.
+		if (this.unsignedSafeMode) {
+			this.checkForUpdateNoDownload(url, false);
 			return;
 		}
 
@@ -197,6 +218,24 @@ export class DarwinUpdateService extends AbstractUpdateService implements IRelau
 	}
 
 	protected override async doDownloadUpdate(state: AvailableForDownload): Promise<void> {
+		// Unsigned OriCode builds: open the DMG download in the browser; the user
+		// replaces the .app manually (autoUpdater cannot install unsigned updates).
+		if (this.unsignedSafeMode) {
+			if (!state.update.url) {
+				this.logService.warn('update#doDownloadUpdate - update record has no download URL');
+				this.setState(State.Idle(UpdateType.Archive));
+				return;
+			}
+			this.logService.info('update#doDownloadUpdate - opening download URL externally (unsigned build)', state.update.url);
+			try {
+				await electron.shell.openExternal(state.update.url);
+			} catch (err) {
+				this.logService.error('update#doDownloadUpdate - failed to open download URL', err);
+			}
+			this.setState(State.Idle(UpdateType.Archive));
+			return;
+		}
+
 		// Rebuild feed URL and trigger download via Electron's auto-updater
 		this.buildUpdateFeedUrl(this.quality!, state.update.version, { internalOrg: this.getInternalOrg() });
 		this.setState(State.CheckingForUpdates(true));

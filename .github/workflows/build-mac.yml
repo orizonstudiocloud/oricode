@@ -17,9 +17,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci || npm ci
         timeout-minutes: 45
+      - name: Dictation runtime stamp
+        run: npx tsx build/dictation-runtime/produce.ts --vscode-platform=darwin --arch=arm64
       - name: Build OriCode (arm64)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DICTATION_RUNTIME_RESULTS_FILE: '.build/dictation-runtime/darwin-arm64.json'
         run: npx gulp vscode-darwin-arm64-min
         timeout-minutes: 120
       - name: Crear DMG

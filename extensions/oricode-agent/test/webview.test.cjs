@@ -70,3 +70,55 @@ test('billing errors and free fallback offer a trusted account link',async()=>{
  await dispatch({type:'tool',text:'Proveedor sin cuota/disponibilidad. Reintentando con un modelo gratuito.'});
  assert.equal(await page.locator('.tool-event .billing-action').last().innerText(),'Gestionar créditos ↗');
 });
+
+
+const speechUpdate=data=>page.evaluate(d=>window.dispatchEvent(new MessageEvent('message',{data:d})),data);
+test('dictation start posts speechStart and streaming transcript preserves typed prefix',async()=>{
+ await page.locator('#in').fill('nota previa:');
+ await page.locator('#speech').click();
+ assert.ok(await page.evaluate(()=>messages.some(m=>m.type==='speechStart')));
+ await speechUpdate({type:'speechUpdate',state:'recording',text:'hola'});
+ await speechUpdate({type:'speechUpdate',state:'recording',text:'hola mundo'});
+ assert.equal(await page.locator('#in').inputValue(),'nota previa: hola mundo');
+ await speechUpdate({type:'speechUpdate',state:'done',text:'hola mundo final'});
+ assert.equal(await page.locator('#in').inputValue(),'nota previa: hola mundo final');
+ await speechUpdate({type:'speechEnd'});
+});
+test('real level drives the meter; silence stays at zero',async()=>{
+ await page.locator('#speech').click();
+ await speechUpdate({type:'speechUpdate',state:'recording',level:0});
+ assert.equal(await page.locator('#speechMeter').isVisible(),true);
+ assert.equal(await page.locator('#speechMeter').getAttribute('aria-valuenow'),'0');
+ await speechUpdate({type:'speechUpdate',state:'recording',level:0.6,text:''});
+ assert.equal(await page.locator('#speechMeter').getAttribute('aria-valuenow'),'60');
+ await speechUpdate({type:'speechUpdate',state:'idle'});await speechUpdate({type:'speechEnd'});
+ assert.equal(await page.locator('#speechMeter').isVisible(),false);
+});
+test('stop and cancel controls map to bridge messages',async()=>{
+ await page.locator('#speech').click();
+ assert.equal(await page.locator('#speech').getAttribute('aria-pressed'),'true');
+ await speechUpdate({type:'speechUpdate',state:'recording'});
+ await page.locator('#speech').click();
+ assert.ok(await page.evaluate(()=>messages.some(m=>m.type==='speechStop')));
+ await speechUpdate({type:'speechUpdate',state:'done',text:''});await speechUpdate({type:'speechEnd'});
+ await page.locator('#speech').click();
+ await page.locator('#speech').click(); // preparing -> cancel
+ assert.ok(await page.evaluate(()=>messages.some(m=>m.type==='speechCancel')));
+ await speechUpdate({type:'speechEnd'});
+});
+test('manual edit cancels dictation and preserves typed text',async()=>{
+ await page.locator('#in').fill('escribo ');
+ await page.locator('#speech').click();
+ await speechUpdate({type:'speechUpdate',state:'recording',text:'dictado'});
+ await page.locator('#in').pressSequentially('manual');
+ assert.ok(await page.evaluate(()=>messages.filter(m=>m.type==='speechCancel').length>=1));
+ assert.match(await page.locator('#in').inputValue(),/manual$/);
+ await speechUpdate({type:'speechEnd'});
+});
+test('error snapshot is visible and resets the button',async()=>{
+ await page.locator('#speech').click();
+ await speechUpdate({type:'speechUpdate',state:'error',error:'micrófono no disponible'});
+ assert.match(await page.locator('#status').innerText(),/micrófono no disponible/);
+ assert.equal(await page.locator('#speech').getAttribute('aria-pressed'),'false');
+ await speechUpdate({type:'speechEnd'});
+});

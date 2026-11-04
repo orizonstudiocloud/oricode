@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><link rel="icon" type="image/png" href="/assets/branding/oricode-star.png"><link rel="apple-touch-icon" href="/assets/branding/oricode-star.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="/app/manifest.webmanifest">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OriCode">
+<title>OriCode — Tu agente</title>
+<style>
+:root{--bg:#fafbfc;--side:#fff;--border:#e5e9ef;--fg:#1e2938;--sub:#64748b;--acc:#3b82f6;--hover:#f1f4f8;--card:#fff;--inbg:#fff}
+body.dark{--bg:#0b0f14;--side:#0d1219;--border:#1e2938;--fg:#e8edf4;--sub:#8b98ab;--hover:#16202e;--card:#10161f;--inbg:#0d1219}
+*{box-sizing:border-box;margin:0}
+body{font-family:-apple-system,'Segoe UI',Inter,sans-serif;background:var(--bg);color:var(--fg);height:100vh;display:flex;overflow:hidden}
+button{font-family:inherit}
+/* ── Sidebar ── */
+.side{width:250px;background:var(--side);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;z-index:50}
+.hd{padding:14px 14px 10px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;font-size:17px;display:flex;align-items:center;gap:7px}.logo img{width:24px;height:24px;object-fit:contain}.logo span{color:var(--acc)}
+.hdicons{display:flex;gap:4px}
+.hdicons button,.nvbt{background:none;border:none;color:var(--sub);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:6px}
+.hdicons button:hover,.nvbt:hover{background:var(--hover);color:var(--fg)}
+.newbtn{margin:4px 14px 12px;padding:10px;background:var(--acc);color:#fff;border:none;border-radius:9px;font-weight:600;cursor:pointer;font-size:13px;text-align:left;display:flex;align-items:center;gap:8px}
+.newbtn:hover{filter:brightness(1.08)}
+.nav{padding:0 14px;display:flex;flex-direction:column;gap:1px;margin-bottom:8px}
+.nav a{color:var(--fg);text-decoration:none;font-size:13.5px;padding:8px 10px;border-radius:8px;display:flex;gap:9px;align-items:center;cursor:pointer}
+.nav a:hover{background:var(--hover)}
+.nav a .ic{width:16px;text-align:center;font-size:13px}
+.sect{padding:10px 16px 4px;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between;align-items:center}
+.sect button{background:none;border:none;color:var(--sub);cursor:pointer;font-size:14px;padding:0 4px}
+.sess{flex:1;overflow-y:auto;padding:0 8px}
+.sess .it{padding:8px 10px;border-radius:8px;font-size:13px;color:var(--sub);cursor:pointer;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sess .it small{display:block;font-size:10px;color:var(--sub);opacity:.7;margin-top:1px}
+.sess .it:hover{background:var(--hover);color:var(--fg)}
+.sess .it.on{background:var(--hover);color:var(--fg)}
+.sess .empty{padding:8px 10px;font-size:12px;color:var(--sub)}
+.foot{border-top:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.foot .av{width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.foot .who{flex:1;min-width:0}
+.foot .who .nm{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foot .who .pl{font-size:10.5px;color:var(--sub)}
+.foot a{color:var(--sub);font-size:12px;text-decoration:none}
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+#menuBtn{display:none;background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;padding:8px}
+.chat{flex:1;overflow-y:auto;padding:24px 16px;display:flex;flex-direction:column}
+.msgs{width:100%;max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.empty{margin:auto;text-align:center;color:var(--sub)}
+.empty .logo-big{font-size:30px;font-weight:800;margin-bottom:8px}
+.empty .logo-big span{color:var(--acc)}
+.empty .sub{font-size:14px}
+.m{display:flex;gap:10px}
+.m .av{width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.m.user .av{background:var(--acc);color:#fff}
+.m.bot .av{background:var(--border);color:var(--acc)}
+.m .b{flex:1;min-width:0}
+.m.user .tx{background:var(--acc);color:#fff;padding:10px 14px;border-radius:14px;display:inline-block;white-space:pre-wrap;word-break:break-word}
+.m.bot .tx{color:var(--fg);line-height:1.65;word-break:break-word}
+.m.bot .tx b{display:inline}
+.m .th{font-size:12px;color:var(--sub);border-left:2px solid var(--acc);padding:4px 10px;margin:4px 0 8px;white-space:pre-wrap}
+.m code{background:var(--hover);padding:1px 5px;border-radius:4px;font-size:.92em}
+.m pre{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;margin:8px 0;font-size:12.5px}
+.m pre code{background:none;padding:0}
+.m img{display:block;max-width:100%;border-radius:10px;margin-top:8px}
+.img-actions{display:flex;gap:8px;margin-top:8px}
+.img-download{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;color:var(--fg);background:var(--card);font-size:12px;text-decoration:none;cursor:pointer}
+.img-download:hover{background:var(--hover);border-color:var(--acc);color:var(--acc)}
+.copybtn{float:right;background:none;border:none;color:var(--sub);cursor:pointer;font-size:12px;opacity:.5}
+.copybtn:hover{opacity:1}
+/* ── Composer ── */
+.wrap{padding:14px 16px 18px}
+#composer{max-width:720px;margin:0 auto;background:var(--inbg);border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+#ta{width:100%;border:none;background:none;color:var(--fg);padding:14px 16px 6px;font-size:14px;font-family:inherit;resize:none;outline:none;min-height:52px;max-height:180px}
+#ta::placeholder{color:var(--sub)}
+#bar{display:flex;align-items:center;gap:4px;padding:6px 10px}
+#bar .tool{background:none;border:none;color:var(--sub);cursor:pointer;font-size:15px;padding:5px 8px;border-radius:7px}
+#bar .tool:hover{background:var(--hover);color:var(--fg)}
+.seg{display:flex;background:var(--hover);border-radius:8px;padding:2px;gap:2px}
+.seg button{background:none;border:none;color:var(--sub);font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer}
+.seg button.on{background:var(--card);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#send{background:var(--acc);color:#fff;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;margin-left:auto}
+#send:hover{filter:brightness(1.08)}
+#send:disabled{opacity:.5}
+.voice-btn{background:none;border:1px solid var(--border);color:var(--sub);border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer}.voice-btn.icon-only{width:42px;min-height:38px;padding:5px 0;line-height:1;border-color:transparent}.voice-btn.icon-only svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.voice-btn:hover{background:var(--hover);color:var(--fg)}.voice-btn.listening{color:#e5484d;border-color:#e5484d;animation:pulse 1.2s infinite}@keyframes pulse{50%{opacity:.45}}
+/* ── Model picker ── */
+#mpick{position:relative}
+.mbtn{background:none;border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.img-provider{background:var(--inbg);border:1px solid var(--border);color:var(--sub);border-radius:8px;padding:5px 7px;font-size:11px;cursor:pointer}
+#mpanel{position:fixed;bottom:70px;width:330px;max-height:min(400px,65vh);background:var(--card);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:70;overflow:hidden}
+#mpanel[hidden]{display:none}
+#msearch{margin:8px;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--inbg);color:var(--fg);font-size:12.5px}
+#mlist{overflow-y:auto;flex:1}
+.mi{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;gap:9px;align-items:flex-start}
+.mi:last-child{border-bottom:none}
+.mi:hover{background:var(--hover)}
+.mi.on{background:var(--hover)}
+.mi-av{width:22px;height:22px;border-radius:6px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.mi-body{flex:1;min-width:0}
+.mi-top{display:flex;justify-content:space-between;gap:8px}
+.mi-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-price{font-size:10px;color:var(--sub);white-space:nowrap}
+.mi-desc{font-size:10.5px;color:var(--sub);margin-top:2px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mi-sub{display:flex;justify-content:space-between;margin-top:2px;font-size:10px;color:var(--sub)}
+.mi-sep{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;padding:10px 12px 4px;border-bottom:1px solid var(--border)}
+.mi-check{color:#22c55e;font-weight:700;flex-shrink:0}
+.cbar{display:inline-flex;gap:2px}.cbar i{display:inline-block;height:4px;border-radius:2px;opacity:.9}
+/* ── Modal guía ── */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:80}
+#modal[hidden]{display:none}
+#modal .box{background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:480px;width:90%;max-height:70vh;overflow-y:auto;padding:20px}
+#modal h3{margin-bottom:12px;font-size:15px}
+#modal .row{padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--sub);line-height:1.5}
+#modal .row b{color:var(--fg)}
+/* ── Responsive ── */
+@media (max-width:768px){
+ .side{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:transform .2s}
+ .side.open{transform:none}
+ #menuBtn{display:block;position:absolute;left:4px;top:8px}
+ .chat{padding:14px 10px 14px 44px}
+ .msgs{max-width:100%}
+ .m.user .tx{max-width:92%}
+ .wrap{padding:10px}
+ #ta{font-size:16px}
+ #mpanel{width:min(330px,94vw)}
+}
+.user-link{display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:inherit;text-decoration:none}.user-link:hover .nm{text-decoration:underline}
+</style>
+</head>
+<body class="dark">
+<div class="side" id="side">
+ <div class="hd">
+  <div class="logo"><img src="/assets/branding/oricode-star.png" alt="" aria-hidden="true">Ori<span>Code</span><small style="font-size:9px;color:#8492a6;font-weight:500;margin-left:3px">by Orizon Studio</small></div>
+  <div class="hdicons"><button onclick="toggleTheme()" id="themeBtn" title="Tema">🌙</button><button onclick="ocToggleLang()" title="Idioma">🌐</button></div>
+ </div>
+ <button class="newbtn" onclick="newSess()">＋ <span data-i18n="Nueva sesión">Nueva sesión</span></button>
+ <button class="newbtn" style="margin-top:-6px;padding:7px 14px;background:transparent;color:var(--sub);border:1px dashed var(--border);font-weight:500" onclick="addProj()">📁 <span data-i18n="Agregar proyecto">Agregar proyecto</span></button>
+ <div class="nav">
+  <a href="/docs/#agentes"><span class="ic">⟳</span><span>Automatizaciones</span></a>
+  <a href="/docs/#problemas"><span class="ic">✓</span><span>Revisión</span></a>
+  <a href="/docs/"><span class="ic">▤</span><span>Wiki y guías</span></a>
+  <a href="/account/#settings"><span class="ic">✣</span><span>Personalizar</span></a>
+  <a href="/privacy/"><span class="ic">♢</span><span>Seguridad</span></a>
+  <a href="/account/"><span class="ic">⚙</span><span>Ajustes y plan</span></a>
+ </div>
+ <div class="sect"><span>Sesiones</span></div>
+ <div class="sess" id="sess"><div class="empty">Sin sesiones</div></div>
+ <div style="padding:10px 14px 2px;border-top:1px solid #1f2a3a;margin-top:auto"><img src="/assets/branding/orizon-studio-dark.jpg" alt="Orizon Studio" style="display:block;width:116px;height:32px;object-fit:contain;border-radius:5px;opacity:.86"></div>
+ <div class="foot">
+  <a class="user-link" href="/account/" title="Tu cuenta y perfil"><div class="av" id="uav">U</div>
+  <div class="who"><div class="nm" id="uname">…</div><div class="pl" id="uplan">—</div></div></a>
+  <a href="#" onclick="logout();return false">Salir</a>
+ </div>
+</div>
+<div class="main">
+ <button id="menuBtn">☰</button>
+ <div class="chat" id="chat"></div>
+ <div class="wrap">
+  <div id="composer">
+   <textarea id="ta" placeholder="Pide a OriCode que construya, arregle o trabaje tu código" rows="2"></textarea>
+   <div id="bar">
+    <button class="tool" title="Adjuntar (próximamente)">＋</button>
+    <div class="seg"><button class="on" id="mAgent" onclick="setMode('agent')">Agente</button><button id="mAsk" onclick="setMode('ask')">Preguntar</button></div>
+    <div id="mpick"><button class="mbtn" id="model">…</button><div id="mpanel" hidden><input id="msearch" placeholder="Search all models" autocomplete="off"><div id="mlist"></div></div></div>
+    <select class="img-provider" id="imgProvider" title="Proveedor de imágenes"><option value="openrouter">Imagen: OpenRouter</option><option value="pollinations">Imagen: Pollinations</option></select>
+    <button class="voice-btn icon-only" id="speech" title="Dictar mensaje con el micrófono" aria-label="Dictar mensaje con el micrófono"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="13" rx="5"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
+    <button class="voice-btn" id="speak" title="Leer las respuestas de OriCode en voz alta" aria-label="Activar voz de OriCode">🔊 Voz</button>
+    <button class="tool" id="mhelp" title="Guía de modelos">?</button>
+    <button id="send" onclick="send()">Send ↑</button>
+   </div>
+  </div>
+ </div>
+</div>
+<div id="modal" hidden><div class="box"><h3>Modelos</h3><div id="modalBody"></div></div></div>
+<script>
+const tok=localStorage.getItem('oc_tok');let key=localStorage.getItem('oc_key');
+const imageProvider= document.getElementById('imgProvider'); imageProvider.value=localStorage.getItem('oc_image_provider')||'openrouter'; imageProvider.onchange=()=>localStorage.setItem('oc_image_provider',imageProvider.value);
+const IMAGE_MODEL=localStorage.getItem('oc_image_model')||'google/gemini-3.1-flash-image';
+if(!tok){location.href='/'}
+if(!key&&tok){fetch('/api/auth/apikey',{headers:{'Authorization':'Bearer '+tok}}).then(r=>r.json()).then(d=>{if(d.ai_api_key){localStorage.setItem('oc_key',d.ai_api_key);location.reload()}}).catch(()=>{})}
+const H={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
+const HT={'Authorization':'Bearer '+tok,'Content-Type':'application/json'};
+let sess=[],cur=null,_models=[],mode='agent';
+window._model='';
+/* perfil */
+fetch('/api/auth/me',{headers:HT}).then(r=>r.json()).then(d=>{const u=d.user||d;if(u){document.getElementById('uname').textContent=u.username||'usuario';document.getElementById('uav').textContent=(u.username||'U')[0].toUpperCase();document.getElementById('uplan').textContent=(u.plan||'free').toUpperCase()}}).catch(()=>{});
+/* sesiones desde el server */
+fetch('/api/sessions',{headers:H}).then(r=>r.json()).then(d=>{
+ if(d.sessions&&d.sessions.length){
+  d.sessions.forEach(x=>fetch('/api/sessions/'+x.id,{headers:H}).then(r=>r.json()).then(full=>{
+   sess.push({id:full.id,title:full.title,msgs:(full.msgs||[]).map(m=>({r:m.r==='user'?'user':'bot',x:m.x,t:m.t,img:m.img}))});
+   const last=localStorage.getItem('oc_cur');if(last&&String(full.id)===last)cur=sess[sess.length-1];
+   renderSess();if(cur)render();
+  }));
+ }}).catch(()=>{});
+/* modelos */
+const PCOL={'anthropic':'#d97757','openai':'#10a37f','google':'#4285f4','deepseek':'#4d6bfe','moonshotai':'#7c3aed','meta-llama':'#0081fb','mistralai':'#ff7000','x-ai':'#1da1f2','qwen':'#6f5bf7','minimax':'#e5484d','z-ai':'#0ea5e9','nvidia':'#76b900','perplexity':'#20808d','amazon':'#ff9900','openrouter':'#64748b','adaptive':'#8b5cf6'};
+const RECO=['openrouter/free','anthropic/claude-sonnet-5.5','openai/gpt-6.1-sol','google/gemini-4-argon','deepseek/deepseek-v4.1-flash','moonshotai/kimi-k3.1-pro','nvidia/nemotron-3-ultra-550b-a55b:free'];
+function shortName(id){const p=(id||'').split('/');return (p[1]||p[0]).replace(/:free$/,'')}
+function priceTxt(x){return x.oricode_free?'Gratis':(x.pricing?('$'+((+x.pricing.prompt)*1e6).toFixed(2)+' / $'+((+x.pricing.completion)*1e6).toFixed(2)+' /1M'):'')}
+function costBar(x){if(x.oricode_free)return '<span class="cbar"><i style="width:8%;background:#22c55e"></i></span>';const v=((+((x.pricing||{}).prompt||0))*1e6)+((+((x.pricing||{}).completion||0))*1e6);const pct=v<=1?15:v<=5?35:v<=15?60:90;const col=v<=1?'#22c55e':v<=5?'#a3e635':v<=15?'#f59e0b':'#ef4444';return '<span class="cbar"><i style="width:'+pct+'%;background:'+col+'"></i></span>'}
+function recentIds(){try{return JSON.parse(localStorage.getItem('oc_recent')||'[]')}catch(e){return[]}}
+function addRecent(id){const r=recentIds().filter(x=>x!==id);r.unshift(id);localStorage.setItem('oc_recent',JSON.stringify(r.slice(0,5)))}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+const PICONS={openai:'openai',anthropic:'anthropic',google:'googlegemini','meta-llama':'meta',meta:'meta','x-ai':'x',nvidia:'nvidia',microsoft:'microsoft',mistralai:'mistralai',deepseek:'deepseek',qwen:'alibabacloud',perplexity:'perplexity',amazon:'amazonwebservices',minimax:'minimax'};
+function miRow(x){const on=x.id===window._model?' on':'';const desc=(x.description||'').split('\n')[0].slice(0,110);const prov=x.id.split('/')[0];const col=PCOL[prov]||'#475569';const ic=PICONS[prov];const av=x.id==='openrouter/free'?'◈':prov[0].toUpperCase();const icon=ic?'<img src="/assets/icons/'+ic+'.svg" alt="" onerror="this.remove()" style="width:13px;height:13px;position:absolute;inset:0;margin:auto;filter:invert(1)">':'';
+ return '<div class="mi'+on+'" data-id="'+x.id+'"><span class="mi-av" style="background:'+col+';position:relative">'+av+icon+'</span><div class="mi-body"><div class="mi-top"><span class="mi-name">'+shortName(x.id)+(x.oricode_free?' 🆓':'')+'</span><span class="mi-price">'+priceTxt(x)+'</span></div>'+(desc?'<div class="mi-desc">'+esc(desc)+'</div>':'')+'<div class="mi-sub"><span>'+prov+'</span>'+costBar(x)+'</div></div>'+(on?'<span class="mi-check">✓</span>':'')+'</div>'}
+function renderModels(f){f=(f||'').toLowerCase();const rows=_models.filter(x=>!f||x.id.toLowerCase().includes(f));let h='';
+ if(!f){const rec=recentIds().map(r=>rows.find(x=>x.id===r)).filter(Boolean);if(rec.length)h+='<div class="mi-sep">Recientes</div>'+rec.map(miRow).join('');
+ const reco=RECO.map(r=>rows.find(x=>x.id===r)).filter(Boolean).filter(x=>!rec.includes(x));if(reco.length)h+='<div class="mi-sep">Recomendados</div>'+reco.map(miRow).join('');
+ if(rec.length||reco.length)h+='<div class="mi-sep">Todos los modelos</div>';
+ document.getElementById('mlist').innerHTML=h+rows.filter(x=>!rec.includes(x)&&!reco.includes(x)).map(miRow).join('')}
+ else document.getElementById('mlist').innerHTML=rows.map(miRow).join('')||'<div class="mi" style="color:#5b6b82;padding:14px">Sin resultados</div>'}
+fetch('/v1/models',{headers:H}).then(r=>r.json()).then(d=>{_models=d.data||[];window._model=localStorage.getItem('oc_model')||(_models[0]&&_models[0].id)||'';document.getElementById('model').textContent=shortName(window._model)||'Modelo';renderModels('')}).catch(()=>{document.getElementById('model').textContent='error'});
+/* picker */
+document.addEventListener('click',e=>{
+ const panel=document.getElementById('mpanel');
+ if(e.target.id==='model'){panel.hidden=!panel.hidden;if(!panel.hidden){const r=document.getElementById('model').getBoundingClientRect();panel.style.left=Math.max(8,r.left)+'px';panel.style.bottom=(window.innerHeight-r.top+8)+'px';renderModels('');document.getElementById('msearch').focus()}return}
+ const mi=e.target.closest('.mi');
+ if(mi&&mi.dataset.id){window._model=mi.dataset.id;addRecent(mi.dataset.id);localStorage.setItem('oc_model',mi.dataset.id);document.getElementById('model').textContent=shortName(mi.dataset.id);panel.hidden=true;return}
+ if(!panel.hidden&&!panel.contains(e.target))panel.hidden=true;
+ const modal=document.getElementById('modal');if(e.target===modal)modal.hidden=true;
+});
+document.getElementById('msearch').addEventListener('input',e=>renderModels(e.target.value));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('mpanel').hidden=true;document.getElementById('modal').hidden=true}});
+/* markdown mini */
+function md(t){let h=esc(t);
+ h=h.replace(/```(\w*)\n?([\s\S]*?)```/g,(m,l,c)=>'<pre><code>'+c.trim()+'</code></pre>');
+ h=h.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+ h=h.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
+ h=h.replace(/^#{1,3} (.+)$/gm,'<b style="display:block;margin:8px 0 4px;font-size:1.05em">$1</b>');
+ h=h.replace(/^- (.+)$/gm,'• $1');
+ h=h.replace(/^\d+\. (.+)$/gm,'• $1');
+ h=h.replace(/\|(.+)\|/g,(m,row)=>{const c=row.split('|').map(x=>x.trim());if(c.every(x=>/^:?-+:?$/.test(x)))return '';return '<div style="display:flex;gap:14px;font-size:.92em;padding:3px 0;border-bottom:1px solid var(--border)">'+c.map(x=>'<span style="flex:1">'+x+'</span>').join('')+'</div>'});
+ return h.replace(/\n/g,'<br>')}
+/* sesiones */
+let projs=JSON.parse(localStorage.getItem('oc_projects')||'[]'),sproj=JSON.parse(localStorage.getItem('oc_sproj')||'{}'),curProj=null;
+function saveProjs(){localStorage.setItem('oc_projects',JSON.stringify(projs));localStorage.setItem('oc_sproj',JSON.stringify(sproj))}
+function addProj(){const n=prompt('Nombre del proyecto');if(!n||!n.trim())return;projs.push({id:Date.now(),name:n.trim()});saveProjs();renderSess()}
+function setProj(id){curProj=curProj===id?null:id;renderSess()}
+function newSess(){cur={id:Date.now(),title:'Nueva sesión',msgs:[]};sess.unshift(cur);if(curProj)sproj[cur.id]=curProj;saveProjs();renderSess();render()}
+function saveSess(){if(!cur||!cur.msgs.length)return;fetch('/api/sessions',{method:'POST',headers:H,body:JSON.stringify({id:String(cur.id),title:cur.title,msgs:cur.msgs.map(m=>({r:m.r,x:m.x,t:m.t,img:m.img}))})}).catch(()=>{})}
+function sessRow(s){return '<div class="it'+(s===cur?' on':'')+'" onclick="pick(\''+s.id+'\')">'+esc(s.title)+'<small>'+s.msgs.length+' msgs</small></div>'}
+function renderSess(){const el=document.getElementById('sess');
+ let h='';const used=new Set();
+ projs.forEach(p=>{const ss=sess.filter(s=>String(sproj[s.id])===String(p.id));ss.forEach(s=>used.add(s.id));
+  h+='<div class="it" style="font-weight:700;color:'+(curProj===p.id?'var(--acc)':'var(--fg)')+'" onclick="setProj(\''+p.id+'\')" title="Seleccionar proyecto (nuevas sesiones entran aquí)">📁 '+esc(p.name)+(curProj===p.id?' ✓':'')+'</div>'+ss.map(sessRow).join('')});
+ const rest=sess.filter(s=>!used.has(s.id));
+ h+=rest.map(sessRow).join('')||'<div class="empty">Sin sesiones</div>';
+ el.innerHTML=h}
+function pick(id){cur=sess.find(s=>String(s.id)===String(id));localStorage.setItem('oc_cur',id);renderSess();render();document.getElementById('side').classList.remove('open')}
+function render(){const c=document.getElementById('chat');
+ if(!cur||!cur.msgs.length){c.innerHTML='<div class="empty"><div class="logo-big">Ori<span>Code</span></div><div class="sub">Pide a OriCode que construya funciones, arregle errores o trabaje en tu código</div></div>';return}
+ c.innerHTML='<div class="msgs">'+cur.msgs.map(m=>'<div class="m '+m.r+'"><div class="av">'+(m.r==='user'?'U':'O')+'</div><div class="b">'+(m.t?'<div class="th">💭 '+esc(m.t)+'</div>':'')+'<div class="tx">'+(m.r==='bot'?md(m.x):esc(m.x))+'</div>'+((m.img||[]).map((u,j)=>'<img src="'+u+'" loading="lazy" alt="Imagen generada por OriCode"><div class="img-actions"><a class="img-download" href="'+u+'" download="oricode-imagen-'+(j+1)+'.png" target="_blank" rel="noopener" onclick="downloadImage(event,this.href,\'oricode-imagen-'+(j+1)+'.png\')">⬇ Descargar imagen</a></div>').join(''))+'</div>'+(m.r==='bot'?'<button class="copybtn" onclick="copyMsg('+cur.msgs.indexOf(m)+')">📋</button>':'')+'</div>').join('')+'</div>';
+ c.scrollTop=c.scrollHeight}
+function copyMsg(i){navigator.clipboard.writeText(cur.msgs[i].x).catch(()=>{})}
+function downloadImage(e,url,name){e.preventDefault();fetch(url).then(r=>{if(!r.ok)throw new Error('download');return r.blob()}).then(b=>{const a=document.createElement('a');const u=URL.createObjectURL(b);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}).catch(()=>window.open(url,'_blank'))}
+/* enviar */
+const ta=document.getElementById('ta');
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,180)+'px'});
+function setMode(m){mode=m;document.getElementById('mAgent').classList.toggle('on',m==='agent');document.getElementById('mAsk').classList.toggle('on',m==='ask')}
+async function send(){const t=ta.value.trim();if(!t)return;
+ if(!cur)newSess();ta.value='';ta.style.height='auto';
+ cur.msgs.push({r:'user',x:t});if(cur.msgs.length===1)cur.title=t.slice(0,40);
+ cur.msgs.push({r:'bot',x:'⏳ …'});renderSess();render();
+ const sendBtn=document.getElementById('send');sendBtn.disabled=true;
+ const sys=(mode==='agent'
+  ?'Eres OriCode Agent — un agente de código profesional. Responde breve y directo en el idioma del usuario. Para crear o modificar archivos usa bloques de código con cabecera filename=RUTA. Explica en una línea qué harás antes de proponer cambios grandes.'
+  :'Eres OriCode — asistente de código. Responde claro y directo en el idioma del usuario.')
+  +' Sé siempre honesto sobre tus capacidades: eres un modelo de lenguaje sin acceso directo a servidores, archivos ni sistemas del usuario — si no tienes una herramienta, dilo claramente en vez de afirmar que puedes o no puedes hacerlo. No inventes datos ni afirmes haber ejecutado acciones.';
+ try{
+  if(/\b(genera|generar|crea|crear|dibuja|imagen|im[aá]gen|foto|bar|image|draw)\b/i.test(t)){
+   let imageUrl='';
+   if(imageProvider.value==='openrouter'){
+    try{const ir=await fetch('/v1/chat/completions',{method:'POST',headers:H,credentials:'include',body:JSON.stringify({model:IMAGE_MODEL,messages:[{role:'user',content:t}],modalities:['text','image'],image_config:{width:1536,height:1024}})});const id=await ir.json();if(!ir.ok)throw new Error(id.error?.message||id.detail||'OpenRouter no disponible');const msg=id.choices?.[0]?.message||{};imageUrl=(msg.images||[]).map(i=>i.image_url?.url||i.url||'').find(Boolean)||'';if(!imageUrl)throw new Error('El modelo no devolvió imagen')}catch(err){console.warn('OpenRouter image fallback:',err)}
+   }
+   if(!imageUrl) imageUrl='https://image.pollinations.ai/prompt/'+encodeURIComponent(t)+'?width=1536&height=1024&nologo=true&enhance=true&model=flux';
+   cur.msgs.pop();cur.msgs.push({r:'bot',x:'🖼️ Imagen generada a partir de tu descripción.',img:[imageUrl]});speakReply('Imagen generada.');sendBtn.disabled=false;renderSess();render();saveSess();return;
+  }
+  const r=await fetch('/v1/chat/completions',{method:'POST',headers:H,body:JSON.stringify({model:window._model,messages:[{role:'system',content:sys},...cur.msgs.slice(0,-1).map(m=>({role:m.r==='user'?'user':'assistant',content:m.x}))]})});
+  const d=await r.json();cur.msgs.pop();
+  if(!r.ok){cur.msgs.push({r:'bot',x:'⚠ '+(d.detail||d.error?.message||'Error '+r.status)})}
+  else{const ch=(d.choices||[])[0]?.message||{};const im=(ch.images||[]).map(i=>i.image_url?.url||i.url||'').filter(Boolean);const reply=ch.content||'(sin respuesta)';cur.msgs.push({r:'bot',x:reply,t:ch.reasoning,img:im});speakReply(reply)}
+ }catch(e){cur.msgs.pop();cur.msgs.push({r:'bot',x:'⚠ '+e.message})}
+ sendBtn.disabled=false;renderSess();render();saveSess()}
+let voiceReply=false;let recognition=null;let finalSpeech='';
+function setupVoice(){
+ const speech=document.getElementById('speech');const speak=document.getElementById('speak');
+ speak.onclick=()=>{voiceReply=!voiceReply;speak.textContent=voiceReply?'🔊 Voz ON':'🔊 Voz';speak.classList.toggle('on',voiceReply);if(!voiceReply&&window.speechSynthesis)window.speechSynthesis.cancel()};
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){speech.title='Dictado no compatible en este navegador';speech.textContent='🎙 No disponible';speech.disabled=true;return}
+ recognition=new SR();recognition.lang=navigator.language||'es-ES';recognition.continuous=false;recognition.interimResults=true;
+ recognition.onstart=()=>{finalSpeech='';speech.classList.add('listening');speech.textContent='⏹ Parar'};
+ recognition.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)finalSpeech+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}ta.value=(finalSpeech+' '+interim).trim();ta.dispatchEvent(new Event('input'))};
+ recognition.onerror=()=>{speech.classList.remove('listening');speech.textContent='🎙 Dictar'};
+ recognition.onend=()=>{speech.classList.remove('listening');speech.textContent='🎙 Dictar'};
+ speech.onclick=()=>speech.classList.contains('listening')?recognition.stop():recognition.start();
+}
+function speakReply(text){if(!voiceReply||!window.speechSynthesis||!text)return;window.speechSynthesis.cancel();const clean=String(text).replace(/```[\s\S]*?```/g,' ').replace(/[#*_>`]/g,' ').replace(/\s+/g,' ').trim();if(clean)window.speechSynthesis.speak(new SpeechSynthesisUtterance(clean))}
+setupVoice();
+/* misc */
+function logout(){localStorage.clear();location.href='/'}
+function toggleTheme(){const d=!document.body.classList.contains('dark');document.body.classList.toggle('dark',!d);document.getElementById('themeBtn').textContent=document.body.classList.contains('dark')?'🌙':'☀️';localStorage.setItem('oc_theme',document.body.classList.contains('dark')?'dark':'light')}
+if(localStorage.getItem('oc_theme')!=='dark'){document.body.classList.remove('dark');document.getElementById('themeBtn').textContent='☀️'}
+document.getElementById('menuBtn').onclick=()=>document.getElementById('side').classList.toggle('open');
+document.getElementById('mhelp').onclick=()=>{document.getElementById('modalBody').innerHTML='<div class="row"><b>🆓 Gratis</b> — modelos :free, sin coste, para uso diario</div><div class="row"><b>openrouter/free</b> — elige solo el mejor free disponible</div><div class="row"><b>Adaptive</b> — en el IDE: premium con fallback a free si se agota la cuota</div><div class="row"><b>Claude / GPT / Gemini</b> — premium para tareas difíciles</div><div class="row"><b>DeepSeek / Qwen / Kimi</b> — gran calidad, precio medio-bajo</div>';document.getElementById('modal').hidden=false};
+render();
+</script>
+<script src="/i18n.js"></script>
+<script src="/app/updates.js"></script></body>
+</html>
