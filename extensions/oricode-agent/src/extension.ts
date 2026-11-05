@@ -544,7 +544,7 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 				}
 				messages.push({ role: 'assistant', content: result.text });
 				this._post({ type: 'tool', text: action.tool + ': ' + (action.path || action.command || '') });
-				const signature = action.tool + '|' + String(action.path || '') + '|' + String(action.command || '') + '|' + String(action.prompt || '') + '|' + String(action.old_string || action.content || '').slice(0, 120);
+				const signature = action.tool + '|' + String(action.path || action.filename || '') + '|' + String(action.command || '') + '|' + String(action.prompt || '') + '|' + String(action.old_string || action.content || '').slice(0, 120);
 				const isRepeat = signature === lastSignature;
 				if (isRepeat) { repeatCount++; } else { repeatCount = 0; lastSignature = signature; }
 				if (repeatCount >= 2) {

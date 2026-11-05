@@ -201,7 +201,7 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 		if (!root) { throw new Error('Abre una carpeta de proyecto para generar imágenes.'); }
 		try {
 			const result = await requestJson<{ path?: string; rel_path?: string; url?: string }>('http://127.0.0.1:7861/api/media/image', { project_path: root, prompt: action.prompt, filename: action.filename || undefined, width: action.width || 1024, height: action.height || 768 }, undefined, signal);
-			return 'Imagen generada correctamente: ' + (result.rel_path || result.path || result.url || 'guardada en .orizon/media/');
+			return 'Imagen generada correctamente: ' + (result.rel_path || result.path || result.url || 'guardada en .orizon/media/') + '. Si quedan más escenas por generar, emite ahora la SIGUIENTE generate_image con su propio filename (e07_02.png, e07_03.png...); si no quedan, da el resumen final.';
 		} catch {
 			if (cloud?.key) {
 				try {
@@ -220,7 +220,7 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 						const target0 = path.join(root, 'media', ...safeParts0, safeName0);
 						await mkdir(path.dirname(target0), { recursive: true });
 						await writeFile(target0, Buffer.from(dataUrl.split(',')[1], 'base64'));
-						return 'Imagen generada en alta calidad: media/' + [...safeParts0, safeName0].join('/');
+						return 'Imagen generada en alta calidad: media/' + [...safeParts0, safeName0].join('/') + '. Si quedan más escenas por generar, emite ahora la SIGUIENTE generate_image con su propio filename; si no quedan, da el resumen final.';
 					}
 				} catch { /* sin modelo de imagen en gateway: cae a Pollinations */ }
 			}
@@ -236,7 +236,7 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 			const response = await fetch(url, { signal });
 			if (!response.ok) { throw new Error('El proveedor de imágenes respondió HTTP ' + response.status); }
 			await writeFile(target, Buffer.from(await response.arrayBuffer()));
-			return 'Imagen generada en calidad estándar (gratis) con Pollinations: media/' + [...safeParts, safeName].join('/');
+			return 'Imagen generada en calidad estándar (gratis) con Pollinations: media/' + [...safeParts, safeName].join('/') + '. Si quedan más escenas por generar, emite ahora la SIGUIENTE generate_image con su propio filename; si no quedan, da el resumen final.';
 		}
 	}
 	if (action.tool === 'diagnostics') {
