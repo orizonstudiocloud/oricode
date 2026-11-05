@@ -23,6 +23,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DICTATION_RUNTIME_RESULTS_FILE: '.build/dictation-runtime/darwin-arm64.json'
+          SKIP_NODE_COMPILE_CACHE: '1'
         run: npx gulp vscode-darwin-arm64-min
         timeout-minutes: 120
       - name: Crear DMG

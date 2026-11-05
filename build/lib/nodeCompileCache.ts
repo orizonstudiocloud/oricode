@@ -25,7 +25,7 @@ export interface INodeCompileCachePaths {
 }
 
 export function shouldGenerateNodeCompileCache(platform: string, arch: string, product: INodeCompileCacheProduct): boolean {
-	if (!product.quality) {
+	if (!product.quality || process.env['SKIP_NODE_COMPILE_CACHE']) {
 		return false;
 	}
 
