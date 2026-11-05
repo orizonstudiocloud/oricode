@@ -469,6 +469,7 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 			const actionContext = { deniedExtensions: new Set<string>() };
 			let lastSignature = '';
 			let repeatCount = 0;
+			let lastOutput = '';
 			let formatFails = 0;
 			for (let step = 1; step <= limit; step++) {
 				controller.signal.throwIfAborted();
@@ -569,7 +570,9 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 					if (mediaReq && this._mode === 'cloud' && selectedModel?.mods && !selectedModel.mods.includes(modality!) && !selectedModel.mods.includes('file')) {
 						output = 'El modelo ' + selected + ' es solo-texto y no puede procesar ' + mediaReq + '. Cambia a un modelo multimodal (p. ej. Gemini) y vuelve a intentarlo.';
 					} else if (isRepeat) {
-						output = 'Acción ya ejecutada: tienes su resultado arriba. NO la repitas — continúa con OTRA acción (por ejemplo read_file de un archivo concreto del listado) o responde el resumen final.';
+						output = lastOutput.startsWith('Error:')
+							? 'La acción anterior falló con: ' + lastOutput.slice(0, 280) + ' — NO la repitas idéntica; corrige los argumentos (otra ruta u otro valor) o responde el resumen final.'
+							: 'Acción ya ejecutada: tienes su resultado arriba. NO la repitas — continúa con OTRA acción (por ejemplo read_file de un archivo concreto del listado) o responde el resumen final.';
 					} else {
 						output = await executeAction(action, this._agentMode, controller.signal, { url: cloudUrl() + '/v1/chat/completions', key: this._mode === 'cloud' && !this._freePlan ? key : '' }, actionContext);
 						if ((action.tool === 'write_file' || action.tool === 'edit_file') && action.path) {
@@ -587,6 +590,7 @@ class AgentViewProvider implements vscode.WebviewViewProvider, vscode.Disposable
 					}
 					output = 'Error: ' + (error instanceof Error ? error.message : String(error));
 				}
+				lastOutput = String(output);
 				this._post({ type: 'toolResult', text: output.startsWith('ORICODE_IMAGE::') ? '🖼️ ' + (action.path || 'imagen') : output.startsWith('ORICODE_MEDIA::') ? 'Media cargado: ' + (action.path || 'archivo') : output.slice(0, 16000) });
 				if (action.tool === 'generate_image') {
 					try {

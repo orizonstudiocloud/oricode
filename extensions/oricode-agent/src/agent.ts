@@ -342,6 +342,13 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 		await vscode.workspace.fs.createDirectory(target);
 		return 'Carpeta creada: ' + action.path;
 	}
+	if (action.tool === 'write_file' || action.tool === 'edit_file') {
+		let st: vscode.FileStat | undefined;
+		try { st = await vscode.workspace.fs.stat(target); } catch { /* no existe: se creará */ }
+		if (st && st.type === vscode.FileType.Directory) {
+			throw new Error(vscode.l10n.t('La ruta {0} es una carpeta. Usa una ruta de archivo completa, por ejemplo "index.html" o "src/app.js".', action.path ?? ''));
+		}
+	}
 	await workspaceTarget(action.path ?? '.');
 	if (document && (document.isDirty || document.getText() !== before)) { throw new Error('El archivo cambió durante la revisión. Léelo de nuevo.'); }
 	await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(target, '..'));
