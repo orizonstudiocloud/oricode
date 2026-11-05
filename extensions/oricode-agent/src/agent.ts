@@ -204,6 +204,7 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 			return 'Imagen generada correctamente: ' + (result.rel_path || result.path || result.url || 'guardada en .orizon/media/') + '. Si quedan más escenas por generar, emite ahora la SIGUIENTE generate_image con su propio filename (e07_02.png, e07_03.png...); si no quedan, da el resumen final.';
 		} catch {
 			if (cloud?.key) {
+				let cloudError = '';
 				try {
 					const res = await requestJson<{ choices?: Array<{ message?: { images?: Array<{ image_url?: { url?: string } }> } }> }>(cloud.url, {
 						model: 'google/gemini-2.5-flash-image',
@@ -214,7 +215,7 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 						const width0 = Math.max(256, Math.min(2048, Number(action.width) || 1024));
 						const height0 = Math.max(256, Math.min(2048, Number(action.height) || 768));
 						void width0; void height0;
-						const requested0 = String(action.filename || ('imagen-' + Date.now() + '.png')).replace(/\\/g, '/').replace(/^\/+/, '');
+						const requested0 = String(action.filename || ('imagen-' + Date.now() + '.png')).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^media\//, '');
 						const safeParts0 = requested0.split('/').filter(part => part && part !== '.' && part !== '..').map(part => part.replace(/[^\w.-]/g, '_'));
 						const safeName0 = (safeParts0.pop() || ('imagen-' + Date.now())).replace(/\.png$/i, '') + '.png';
 						const target0 = path.join(root, 'media', ...safeParts0, safeName0);
@@ -222,11 +223,16 @@ export async function executeAction(action: AgentAction, mode: string, signal: A
 						await writeFile(target0, Buffer.from(dataUrl.split(',')[1], 'base64'));
 						return 'Imagen generada en alta calidad: media/' + [...safeParts0, safeName0].join('/') + '. Si quedan más escenas por generar, emite ahora la SIGUIENTE generate_image con su propio filename; si no quedan, da el resumen final.';
 					}
-				} catch { /* sin modelo de imagen en gateway: cae a Pollinations */ }
+				} catch (cloudErr) {
+					cloudError = cloudErr instanceof Error ? cloudErr.message : String(cloudErr);
+				}
+				if (cloudError) {
+					return 'ERROR alta calidad (Nano Banana): ' + cloudError.slice(0, 300) + ' — la imagen NO se generó. Di la causa al usuario y NO reintentes la misma llamada; corrige el prompt o el filename.';
+				}
 			}
 			const width = Math.max(256, Math.min(2048, Number(action.width) || 1024));
 			const height = Math.max(256, Math.min(2048, Number(action.height) || 768));
-			const requested = String(action.filename || ('imagen-' + Date.now() + '.png')).replace(/\\/g, '/').replace(/^\/+/, '');
+			const requested = String(action.filename || ('imagen-' + Date.now() + '.png')).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^media\//, '');
 			const safeParts = requested.split('/').filter(part => part && part !== '.' && part !== '..').map(part => part.replace(/[^\w.-]/g, '_'));
 			const safeName = (safeParts.pop() || ('imagen-' + Date.now())) .replace(/\.png$/i, '') + '.png';
 			const mediaRoot = path.join(root, 'media');
