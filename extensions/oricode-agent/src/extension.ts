@@ -39,7 +39,7 @@ async function ollamaModels(): Promise<Model[]> {
 }
 async function cloudModels(key: string, base?: string): Promise<Model[]> {
 	const response = await requestJson<{ data?: CloudModel[] }>((base ?? cloudUrl()) + '/v1/models', undefined, key);
-	return (response.data ?? []).filter(m => (!m.architecture?.output_modalities || m.architecture.output_modalities.includes('text')) && !/(?:embed|rerank|:batch|\/extract$)/i.test(m.id)).map(m => {
+	return (response.data ?? []).filter(m => (!m.architecture?.output_modalities || m.architecture.output_modalities.includes('text')) && !/(?:embed|rerank|:batch|\/extract$|flash-image|-image$|image-gen|dall-e|seedream|imagen-)/i.test(m.id)).map(m => {
 		const input = m.pricing?.prompt === undefined ? undefined : Number(m.pricing.prompt) * 1e6;
 		const output = m.pricing?.completion === undefined ? undefined : Number(m.pricing.completion) * 1e6;
 		return { id: m.id, name: m.name, ctx: m.context_length, desc: m.description?.split('\n')[0].slice(0, 180), free: !!m.oricode_free || (input === 0 && output === 0), inUsd: Number.isFinite(input) ? input : undefined, outUsd: Number.isFinite(output) ? output : undefined, mods: m.architecture?.input_modalities };
